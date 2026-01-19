@@ -1,0 +1,43 @@
+{
+  "conversation_id": "demo0",
+  "settings": {
+    "max_context_tokens": 800,
+    "reserved_for_reply_tokens": 200
+  },
+  "messages": [
+    {
+      "id": "82a99321303045ceaa4f6d87794b5e74",
+      "role": "system",
+      "content": "You are a helpful assistant. Answer in Russian.",
+      "created_at": "2026-01-18T16:27:41.077186+00:00",
+      "meta": {
+        "pinned": true,
+        "tokens": 16
+      }
+    },
+    {
+      "id": "d237c79365f246928afeab63cf7c3544",
+      "role": "user",
+      "content": "Скажи одним предложением, что ты умеешь.",
+      "created_at": "2026-01-18T16:27:41.077203+00:00",
+      "meta": {
+        "tokens": 14
+      }
+    },
+    {
+      "id": "beee75f3aaa6437d82534fb35d419451",
+      "role": "assistant",
+      "content": "Я могу помочь с ответами на различные вопросы и предоставлять информацию по интересующим вас темам.",
+      "created_at": "2026-01-18T16:28:01.003630+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 29
+      }
+    }
+  ],
+  "summary": null,
+  "memory": {}
+}

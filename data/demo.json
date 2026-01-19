@@ -1,0 +1,263 @@
+{
+  "conversation_id": "demo",
+  "settings": {
+    "max_context_tokens": 800,
+    "reserved_for_reply_tokens": 200
+  },
+  "messages": [
+    {
+      "id": "b0ce5359159e48c1ac4db9c5b9b9dbfe",
+      "role": "system",
+      "content": "You are a helpful assistant. Answer in Russian.",
+      "created_at": "2026-01-17T22:31:01.541804+00:00",
+      "meta": {
+        "pinned": true,
+        "tokens": 16
+      }
+    },
+    {
+      "id": "86cdf3eb926a4ed6a9f064b3d821bf10",
+      "role": "user",
+      "content": "hi",
+      "created_at": "2026-01-17T22:31:01.543697+00:00",
+      "meta": {
+        "tokens": 5
+      }
+    },
+    {
+      "id": "fdcd090761ac4179a18d326a13191bba",
+      "role": "assistant",
+      "content": "[mock] Ответ на: hi",
+      "created_at": "2026-01-17T22:31:01.543899+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 9
+      }
+    },
+    {
+      "id": "6ba5f2fa46354af3b777007af53a8293",
+      "role": "user",
+      "content": "что в файле book",
+      "created_at": "2026-01-17T22:31:09.101192+00:00",
+      "meta": {
+        "tokens": 8
+      }
+    },
+    {
+      "id": "4c7d69967bbf47e98713e78833f10ea9",
+      "role": "assistant",
+      "content": "[mock] Ответ на: что в файле book",
+      "created_at": "2026-01-17T22:31:09.102177+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 13
+      }
+    },
+    {
+      "id": "aa31968c44034a3ea4a5fbcc35221a12",
+      "role": "user",
+      "content": "рш",
+      "created_at": "2026-01-18T00:44:03.711571+00:00",
+      "meta": {
+        "tokens": 5
+      }
+    },
+    {
+      "id": "bada72f36e6c4b51801c33908a5169ee",
+      "role": "assistant",
+      "content": "[mock] Ответ на: рш",
+      "created_at": "2026-01-18T00:44:03.712372+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 9
+      }
+    },
+    {
+      "id": "5b978328b7a14e17a0c701ba200939b5",
+      "role": "user",
+      "content": "hi",
+      "created_at": "2026-01-18T00:44:05.973360+00:00",
+      "meta": {
+        "tokens": 5
+      }
+    },
+    {
+      "id": "c27d2cb1a0d048bca87691e26da19921",
+      "role": "assistant",
+      "content": "[mock] Ответ на: hi",
+      "created_at": "2026-01-18T00:44:05.973714+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 9
+      }
+    },
+    {
+      "id": "ffcd61a1d05d4b6fa7f45a5bc808a487",
+      "role": "user",
+      "content": "Меня зовут Аня",
+      "created_at": "2026-01-18T00:44:28.637256+00:00",
+      "meta": {
+        "tokens": 8
+      }
+    },
+    {
+      "id": "786f91b91bb049098723fe04e990afb7",
+      "role": "assistant",
+      "content": "[mock] Ответ на: Меня зовут Аня",
+      "created_at": "2026-01-18T00:44:28.639167+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 12
+      }
+    },
+    {
+      "id": "0962d09e27d74127affe7b553deba77c",
+      "role": "user",
+      "content": "Я не люблю шум",
+      "created_at": "2026-01-18T00:44:35.860477+00:00",
+      "meta": {
+        "tokens": 8
+      }
+    },
+    {
+      "id": "54a83ea8ff794d6997b8b48e55cc3fff",
+      "role": "assistant",
+      "content": "[mock] Ответ на: Я не люблю шум",
+      "created_at": "2026-01-18T00:44:35.861692+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 12
+      }
+    },
+    {
+      "id": "19fcd96218874117bc0545651d7cee4c",
+      "role": "user",
+      "content": "pwd",
+      "created_at": "2026-01-18T00:46:32.450516+00:00",
+      "meta": {
+        "tokens": 5
+      }
+    },
+    {
+      "id": "b5f308ddec99412ebec9995bbffbe182",
+      "role": "assistant",
+      "content": "[mock] Ответ на: pwd",
+      "created_at": "2026-01-18T00:46:32.450897+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 9
+      }
+    },
+    {
+      "id": "72746122f35b4e4a9a755b631feff7eb",
+      "role": "user",
+      "content": "Меня зовут Аня",
+      "created_at": "2026-01-18T15:29:04.823249+00:00",
+      "meta": {
+        "tokens": 8
+      }
+    },
+    {
+      "id": "43faf5d5cc3a4468bf6cdc56acb13d79",
+      "role": "assistant",
+      "content": "[mock] Ответ на: Меня зовут Аня",
+      "created_at": "2026-01-18T15:29:04.823688+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 12
+      }
+    },
+    {
+      "id": "e508af51a0114c72b45f6329fb3cfbb1",
+      "role": "user",
+      "content": "Кто такой Томас Франк?",
+      "created_at": "2026-01-18T15:33:42.479199+00:00",
+      "meta": {
+        "tokens": 10
+      }
+    },
+    {
+      "id": "08de0ca5a80a45c3ab68e021aa1885ed",
+      "role": "assistant",
+      "content": "[mock] Ответ на: Кто такой Томас Франк?",
+      "created_at": "2026-01-18T15:33:42.479464+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 14
+      }
+    },
+    {
+      "id": "d4428cd15ab24004a8d3222a2ce09977",
+      "role": "user",
+      "content": "Кто такой Томас Франк?",
+      "created_at": "2026-01-18T15:36:28.210288+00:00",
+      "meta": {
+        "tokens": 10
+      }
+    },
+    {
+      "id": "ff7b0102c62d489498a3abad8831f2a2",
+      "role": "assistant",
+      "content": "[mock] Ответ на: Кто такой Томас Франк?",
+      "created_at": "2026-01-18T15:36:28.210550+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 14
+      }
+    },
+    {
+      "id": "5e5b0e66e847457286f75a08a66deb76",
+      "role": "user",
+      "content": "Кто такой Томас Франк?",
+      "created_at": "2026-01-18T15:39:29.386699+00:00",
+      "meta": {
+        "tokens": 10
+      }
+    },
+    {
+      "id": "3d83c56381c640dfaeb6b89e643ec5f8",
+      "role": "assistant",
+      "content": "[mock] Ответ на: Кто такой Томас Франк?",
+      "created_at": "2026-01-18T15:39:29.386942+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 14
+      }
+    }
+  ],
+  "summary": null,
+  "memory": {}
+}

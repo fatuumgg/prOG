@@ -1,0 +1,21 @@
+{
+  "users": {
+    "fatuum": {},
+    "u_test": {
+      "583a61ebeefcb4e3": {
+        "key": "name",
+        "value": "Аня",
+        "confidence": 0.9,
+        "updated_at": "2026-01-18T15:29:04.823403+00:00",
+        "source_message_id": "72746122f35b4e4a9a755b631feff7eb"
+      },
+      "d459cfde12c7efe8": {
+        "key": "dislikes:шум",
+        "value": "шум",
+        "confidence": 0.8,
+        "updated_at": "2026-01-18T00:47:54.506242+00:00",
+        "source_message_id": "m1"
+      }
+    }
+  }
+}

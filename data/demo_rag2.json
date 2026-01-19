@@ -1,0 +1,43 @@
+{
+  "conversation_id": "demo_rag2",
+  "settings": {
+    "max_context_tokens": 800,
+    "reserved_for_reply_tokens": 200
+  },
+  "messages": [
+    {
+      "id": "71983ad7cc2740fcb5f1c4e6b51c145b",
+      "role": "system",
+      "content": "You are a helpful assistant. Answer in Russian.",
+      "created_at": "2026-01-18T16:43:56.211535+00:00",
+      "meta": {
+        "pinned": true,
+        "tokens": 17
+      }
+    },
+    {
+      "id": "a464ad7e6a2543698bf25c80e2b76b18",
+      "role": "user",
+      "content": "По документам (docs/book.pdf), кто такой Томас Франк?",
+      "created_at": "2026-01-18T16:43:56.227064+00:00",
+      "meta": {
+        "tokens": 28
+      }
+    },
+    {
+      "id": "6561a4f56e504d7a96649e3203849fbb",
+      "role": "assistant",
+      "content": "Томас Франк - немецкий писатель и критик, известный своими произведениями о культуре и обществе. В частности, он написал книгу \"Падение\", в которой анализирует влияние массовой культуры на современное общество.",
+      "created_at": "2026-01-18T16:44:01.967938+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 104
+      }
+    }
+  ],
+  "summary": null,
+  "memory": {}
+}

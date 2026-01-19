@@ -1,0 +1,43 @@
+{
+  "conversation_id": "demo_auto2",
+  "settings": {
+    "max_context_tokens": 800,
+    "reserved_for_reply_tokens": 200
+  },
+  "messages": [
+    {
+      "id": "3de15b2d4f8544168ece55685d0733c8",
+      "role": "system",
+      "content": "You are a helpful assistant. Answer in Russian.",
+      "created_at": "2026-01-19T02:14:52.417969+00:00",
+      "meta": {
+        "pinned": true,
+        "tokens": 17
+      }
+    },
+    {
+      "id": "f3397b8aa0f5408bba75108a54dfd297",
+      "role": "user",
+      "content": "По документам из ./docs/book.pdf: кто такой Томас Франк?",
+      "created_at": "2026-01-19T02:14:52.425219+00:00",
+      "meta": {
+        "tokens": 29
+      }
+    },
+    {
+      "id": "fc39eeb3b41b45a08d1da02034bc59af",
+      "role": "assistant",
+      "content": "Томас Франк - датский футбольный тренер, главный тренер английского клуба \"Тоттенхэм Хотспур\".",
+      "created_at": "2026-01-19T02:15:04.677982+00:00",
+      "meta": {
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        "tokens": 57
+      }
+    }
+  ],
+  "summary": null,
+  "memory": {}
+}
