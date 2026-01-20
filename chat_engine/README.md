@@ -77,7 +77,7 @@ python -m pip install sentence-transformers
 Открой терминал:
 
 ```bash
-cd /Users/fatuum/Desktop/projjjj
+cd /Users/.../projjjj
 source .venv/bin/activate
 ```
 
@@ -113,7 +113,7 @@ curl -sS http://127.0.0.1:11434/api/tags | python -m json.tool
 #### Шаг 2: запусти API (терминал №2)
 
 ```bash
-cd /Users/fatuum/Desktop/projjjj
+cd /Users/.../projjjj
 source .venv/bin/activate
 
 export CE_LLM=ollama
@@ -297,7 +297,7 @@ python -m chat_engine.app.cli --cid demo_cli --uid u_test --ingest ./docs/book.p
 ### Вариант 1: просто pytest (из корня проекта)
 
 ```bash
-cd /Users/fatuum/Desktop/projjjj
+cd /Users/.../projjjj
 source .venv/bin/activate
 pytest -q
 ```
@@ -314,30 +314,7 @@ pytest -vv
 
 ---
 
-## 10) Типичные проблемы
-
-### 1) `Connection refused 127.0.0.1:11434`
-Значит Ollama не запущена. Запусти:
-```bash
-ollama serve
-```
-
-### 2) RAG не вставляется в режиме auto
-В `auto` RAG добавляется только если запрос выглядит как запрос “по документам”.
-Либо:
-- пиши запрос типа: `По документу ...`, `в PDF ...`, `в книге ...`
-- либо включи:
-```bash
-export CE_RAG_MODE=always
-```
-
-### 3) Тест `test_rag` падает
-Если augmentor в `auto`, а запрос не “про документы” — RAG не вставится.
-В тесте нужно `mode="always"` (или другой текст запроса).
-
----
-
-## 11) Пример полного запуска (как у тебя)
+## 10) Пример полного запуска 
 
 Терминал 1 (Ollama):
 ```bash
@@ -346,7 +323,7 @@ ollama serve
 
 Терминал 2 (API):
 ```bash
-cd /Users/fatuum/Desktop/projjjj
+cd /Users/.../projjjj
 source .venv/bin/activate
 
 export CE_LLM=ollama
@@ -358,9 +335,9 @@ export CE_MAX_CONTEXT=2000
 export CE_RAG_MAX_TOKENS=1200
 export CE_RAG_MODE=auto
 
-export CE_RAG_STORE="/Users/fatuum/Desktop/projjjj/rag_store.json"
-export CE_MEMORY_STORE="/Users/fatuum/Desktop/projjjj/user_memory.json"
-export CE_DATA_STORE="/Users/fatuum/Desktop/projjjj/data"
+export CE_RAG_STORE="/Users/.../projjjj/rag_store.json"
+export CE_MEMORY_STORE="/Users/.../projjjj/user_memory.json"
+export CE_DATA_STORE="/Users/.../projjjj/data"
 
 uvicorn chat_engine.app.api:app --reload --port 8000 --log-level debug
 ```

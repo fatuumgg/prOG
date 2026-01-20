@@ -16,6 +16,15 @@
         "updated_at": "2026-01-18T00:47:54.506242+00:00",
         "source_message_id": "m1"
       }
+    },
+    "u1": {
+      "83627ac3dd5573f6": {
+        "key": "name",
+        "value": "Аня",
+        "confidence": 0.9,
+        "updated_at": "2026-01-20T02:13:29.795481+00:00",
+        "source_message_id": "49cf91d6610d4b5c8cf94c379213b012"
+      }
     }
   }
 }

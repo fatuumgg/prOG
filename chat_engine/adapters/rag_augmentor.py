@@ -1,155 +1,139 @@
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Dict, List
+from dataclasses import dataclass
+from typing import Optional
+from collections.abc import Sequence
 
-from chat_engine.domain.memory_models import UserMemoryFact
-from chat_engine.ports.memory_store import UserMemoryStore
-
-
-def _dt_to_iso(dt: datetime) -> str:
-    dt = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
-    return dt.isoformat()
+from chat_engine.domain.models import Conversation, Message
+from chat_engine.domain.rag_models import DocumentChunk
+from chat_engine.ports.augment import ContextAugmentor
+from chat_engine.ports.embeddings import Embedder
+from chat_engine.ports.tokens import TokenCounter
+from chat_engine.ports.vector_store import VectorStore
 
 
-def _dt_from_iso(s: str) -> datetime:
-    s = (s or "").strip()
-    if not s:
-        return datetime.now(timezone.utc)
-    if s.endswith("Z"):
-        s = s[:-1] + "+00:00"
-    try:
-        dt = datetime.fromisoformat(s)
-    except Exception:
-        return datetime.now(timezone.utc)
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+def _looks_doc_query(text: str) -> bool:
+    t = (text or "").lower()
+    keys = [
+        "документ", "доки", "файл", "pdf", ".pdf", "txt", ".txt",
+        "книга", "страница", "раздел", "по документам", "в документе",
+        "в файле", "в книге", "согласно документу", "docs/", "./docs/",
+    ]
+    return any(k in t for k in keys)
 
 
-def _atomic_write(path: Path, text: str) -> None:
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    tmp.replace(path)
+def _loc(ch: DocumentChunk) -> str:
+    return ch.source + (f":p{ch.page}" if ch.page else "")
 
 
-class JsonUserMemoryStore(UserMemoryStore):
-    """
-    Формат:
-    {
-      "users": {
-        "<user_id>": {
-          "<fact_id>": { "key": "...", "value": "...", "confidence": 0.7, "updated_at": "...", "source_message_id": "..." }
-        }
-      }
-    }
-    """
+def _new_id(prefix: str) -> str:
+    # чтобы не было коллизий с постоянным "rag_block"
+    from uuid import uuid4
+    return f"{prefix}_{uuid4().hex}"
 
-    def __init__(self, path: str):
-        self.path = Path(path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._data: Dict[str, Any] = {"users": {}}
-        self._load()
 
-    def _load(self) -> None:
-        if not self.path.exists():
-            self._data = {"users": {}}
-            return
+@dataclass
+class RagAugmentor(ContextAugmentor):
+    store: VectorStore
+    embedder: Embedder
+    counter: TokenCounter
+    top_k: int = 4
+    max_rag_tokens: int = 250
+    mode: str = "auto"  # auto | always
+
+    def augment(self, convo: Conversation, draft_context: Sequence[Message]) -> list[Message]:
+        base = list(draft_context)
+        if not base:
+            return base
+
+        last_user: Optional[Message] = next((m for m in reversed(base) if m.role == "user"), None)
+        if last_user is None:
+            return base
+
+        q = last_user.content or ""
+        if self.mode == "auto" and not _looks_doc_query(q):
+            return base
+
+        # если стора нет/пустой — смысла продолжать нет
         try:
-            raw = self.path.read_text(encoding="utf-8")
-            data = json.loads(raw) if raw.strip() else {"users": {}}
-            if not isinstance(data, dict) or "users" not in data or not isinstance(data["users"], dict):
-                self._data = {"users": {}}
-            else:
-                self._data = data
+            if hasattr(self.store, "count") and int(self.store.count()) <= 0:
+                return base
         except Exception:
-            try:
-                backup = self.path.with_suffix(self.path.suffix + ".bad")
-                self.path.replace(backup)
-            except Exception:
-                pass
-            self._data = {"users": {}}
+            pass
 
-    def _save(self) -> None:
-        text = json.dumps(self._data, ensure_ascii=False, indent=2)
-        _atomic_write(self.path, text)
+        qv = self.embedder.embed([q])[0]
+        hits: list[DocumentChunk] = self.store.search(qv, top_k=int(self.top_k))
+        if not hits:
+            return base
 
-    def get_facts(self, user_id: str) -> List[UserMemoryFact]:
-        users = self._data.get("users", {})
-        u = users.get(user_id, {}) if isinstance(users, dict) else {}
-        out: List[UserMemoryFact] = []
+        header = (
+            "Релевантные фрагменты из документов (используй их при ответе). "
+            "Если ответа нет в этих фрагментах — так и скажи.\n\n"
+        )
 
-        if not isinstance(u, dict):
-            return out
-
-        for fid, f in u.items():
-            if not isinstance(f, dict):
-                continue
-            out.append(
-                UserMemoryFact(
-                    fact_id=str(fid),
-                    key=str(f.get("key", "")),
-                    value=str(f.get("value", "")),
-                    confidence=float(f.get("confidence", 0.0)),
-                    updated_at=_dt_from_iso(str(f.get("updated_at", ""))),
-                    source_message_id=str(f.get("source_message_id", "")),
-                )
+        def make_msg(text: str, chosen_chunks: Sequence[DocumentChunk]) -> Message:
+            return Message(
+                id=_new_id("rag"),
+                role="system",
+                content=text,
+                created_at=last_user.created_at,
+                meta={
+                    "type": "retrieved_context",
+                    "pinned": False,
+                    "chosen": len(chosen_chunks),
+                    "sources": [_loc(c) for c in chosen_chunks],
+                },
             )
-        return out
 
-    def upsert_fact(self, user_id: str, fact: UserMemoryFact) -> None:
-        users = self._data.setdefault("users", {})
-        if not isinstance(users, dict):
-            self._data["users"] = {}
-            users = self._data["users"]
+        chosen: list[DocumentChunk] = []
+        parts: list[str] = [header]
 
-        u = users.setdefault(user_id, {})
-        if not isinstance(u, dict):
-            users[user_id] = {}
-            u = users[user_id]
+        for ch in hits:
+            piece = f"[{_loc(ch)}]\n{(ch.text or '').strip()}\n\n"
+            trial = "".join(parts) + piece
+            trial_msg = make_msg(trial, chosen + [ch])
+            tok = self.counter.count_messages([trial_msg])
 
-        u[fact.fact_id] = {
-            "key": fact.key,
-            "value": fact.value,
-            "confidence": float(fact.confidence),
-            "updated_at": _dt_to_iso(fact.updated_at),
-            "source_message_id": fact.source_message_id,
-        }
-        self._save()
+            if tok <= int(self.max_rag_tokens):
+                parts.append(piece)
+                chosen.append(ch)
+            else:
+                break
 
-    def delete_fact(self, user_id: str, fact_id: str) -> bool:
-        users = self._data.get("users", {})
-        if not isinstance(users, dict):
-            return False
-        u = users.get(user_id, {})
-        if not isinstance(u, dict):
-            return False
+        if not chosen:
+            # попробуем хотя бы первый чанк ужать бинарным поиском
+            ch0 = hits[0]
+            text = (ch0.text or "").strip()
+            if not text:
+                return base
 
-        if fact_id in u:
-            del u[fact_id]
-            self._save()
-            return True
-        return False
+            lo, hi = 0, len(text)
+            best = ""
+            while lo <= hi:
+                mid = (lo + hi) // 2
+                trial = header + f"[{_loc(ch0)}]\n{text[:mid]}\n"
+                trial_msg = make_msg(trial, [ch0])
+                tok = self.counter.count_messages([trial_msg])
+                if tok <= int(self.max_rag_tokens):
+                    best = trial
+                    lo = mid + 1
+                else:
+                    hi = mid - 1
 
-    def delete_by_key(self, user_id: str, key: str) -> int:
-        users = self._data.get("users", {})
-        if not isinstance(users, dict):
-            return 0
-        u = users.get(user_id, {})
-        if not isinstance(u, dict):
-            return 0
+            if not best:
+                return base
 
-        to_del = [fid for fid, f in u.items() if isinstance(f, dict) and f.get("key") == key]
-        for fid in to_del:
-            del u[fid]
-        if to_del:
-            self._save()
-        return len(to_del)
+            rag_msg = make_msg(best, [ch0])
+            rag_msg.meta["tokens"] = self.counter.count_messages([rag_msg])
+        else:
+            final_text = "".join(parts)
+            rag_msg = make_msg(final_text, chosen)
+            rag_msg.meta["tokens"] = self.counter.count_messages([rag_msg])
 
-    def clear(self, user_id: str) -> None:
-        users = self._data.setdefault("users", {})
-        if not isinstance(users, dict):
-            self._data["users"] = {}
-            users = self._data["users"]
-        users[user_id] = {}
-        self._save()
+        # вставляем после pinned=True системных сообщений (system prompt / summary / memory)
+        insert_at = 0
+        for i, m in enumerate(base):
+            if m.meta.get("pinned") is True:
+                insert_at = i + 1
+
+        return base[:insert_at] + [rag_msg] + base[insert_at:]

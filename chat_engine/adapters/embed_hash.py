@@ -4,11 +4,13 @@ import hashlib
 import math
 import re
 from dataclasses import dataclass
-from typing import List, Sequence
+from typing import List
+from collections.abc import Sequence
 
 from chat_engine.ports.embeddings import Embedder
 
 _WORD_RE = re.compile(r"\w+", re.UNICODE)
+
 
 def _l2_normalize(vec: List[float]) -> List[float]:
     norm = math.sqrt(sum(v * v for v in vec))
@@ -16,13 +18,14 @@ def _l2_normalize(vec: List[float]) -> List[float]:
         return vec
     return [v / norm for v in vec]
 
+
 @dataclass
 class HashingEmbedder(Embedder):
     _dim: int = 256
 
     @property
     def dim(self) -> int:
-        return int(self._model.get_sentence_embedding_dimension())
+        return self._dim
 
     def embed(self, texts: Sequence[str]) -> List[List[float]]:
         out: List[List[float]] = []

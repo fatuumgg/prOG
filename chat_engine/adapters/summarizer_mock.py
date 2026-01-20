@@ -1,56 +1,40 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Sequence
+from collections.abc import Sequence
 
 from chat_engine.domain.models import Message
-from chat_engine.ports.llm import LLMClient
 from chat_engine.ports.summarizer import Summarizer
 
 
-def _now_utc() -> datetime:
-    return datetime.now(timezone.utc)
-
-
-@dataclass
-class LLMSummarizer(Summarizer):
-    llm: LLMClient
+class MockSummarizer(Summarizer):
+    """
+    Детерминированная "суммаризация" без сети:
+    - превращает сообщения в пункты
+    - грубо режет по длине, чтобы уложиться в max_tokens (1 токен ~ 4 символа)
+    """
 
     def summarize(self, messages: Sequence[Message], *, max_tokens: int) -> str:
-        if not messages:
-            return "Сводка: (пусто)"
+        def norm(s: str) -> str:
+            return " ".join((s or "").split())
 
-        lines = []
+        lines: list[str] = []
         for m in messages:
-            if m.role == "system":
-                continue
-            content = (m.content or "").strip()
-            if not content:
-                continue
-            lines.append(f"{m.role.upper()}: {content}")
+            role = "U" if m.role == "user" else ("A" if m.role == "assistant" else m.role.upper())
+            snippet = norm(m.content or "")
+            if len(snippet) > 160:
+                snippet = snippet[:157] + "..."
+            lines.append(f"- {role}: {snippet}")
 
-        transcript = "\n".join(lines) if lines else "(нет текста)"
+        lines = lines[:15]
+        text = "Сводка (авто):\n" + "\n".join(lines) if lines else "Сводка (авто): (пусто)"
 
-        prompt = (
-            "Суммаризируй диалог кратко (10–15 пунктов). "
-            "Сохрани факты, решения, обязательства, предпочтения пользователя. "
-            "Без воды.\n\n"
-            f"ДИАЛОГ:\n{transcript}\n"
-        )
+        # укладываемся в max_tokens (грубо: 1 токен ~ 4 символа)
+        while (len(text) // 4) > int(max_tokens) and len(lines) > 1:
+            lines = lines[:-1]
+            text = "Сводка (авто):\n" + "\n".join(lines)
 
-        created_at = messages[-1].created_at if messages else _now_utc()
-        resp = self.llm.generate(
-            [
-                Message(
-                    id="sum_sys",
-                    role="system",
-                    content="You are a precise summarizer. Output concise bullet points in Russian.",
-                    created_at=created_at,
-                    meta={"pinned": True},
-                ),
-                Message(id="sum_user", role="user", content=prompt, created_at=created_at, meta={}),
-            ],
-            max_output_tokens=int(max_tokens),
-        )
-        return (resp.text or "").strip()
+        hard_max_chars = max(20, int(max_tokens) * 4)
+        if len(text) > hard_max_chars:
+            text = text[: hard_max_chars - 3] + "..."
+
+        return text

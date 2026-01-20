@@ -1,132 +1,123 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Optional, Sequence
-from uuid import uuid4
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Optional
 
 from chat_engine.domain.models import Conversation, Message
-from chat_engine.domain.rag_models import DocumentChunk
-from chat_engine.ports.augment import ContextAugmentor
-from chat_engine.ports.embeddings import Embedder
-from chat_engine.ports.tokens import TokenCounter
-from chat_engine.ports.vector_store import VectorStore
+from chat_engine.ports.repo import ConversationRepo
 
 
-def _looks_doc_query(text: str) -> bool:
-    t = (text or "").lower()
-    keys = [
-        "документ", "доки", "файл", "pdf", ".pdf", "txt", ".txt",
-        "книга", "страница", "раздел", "по документам", "в документе",
-        "в файле", "в книге", "согласно документу", "docs/", "./docs/",
-    ]
-    return any(k in t for k in keys)
+def _dt_to_iso(dt: datetime) -> str:
+    dt = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return dt.isoformat()
 
 
-def _loc(ch: DocumentChunk) -> str:
-    return ch.source + (f":p{ch.page}" if ch.page else "")
+def _dt_from_iso(s: str) -> datetime:
+    s = (s or "").strip()
+    if not s:
+        return datetime.now(timezone.utc)
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(s)
+    except Exception:
+        return datetime.now(timezone.utc)
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
-def _new_id(prefix: str) -> str:
-    return f"{prefix}_{uuid4().hex}"
+class JsonFileConversationRepo(ConversationRepo):
+    def __init__(self, root: str):
+        self.root = Path(root)
+        self.root.mkdir(parents=True, exist_ok=True)
 
+    def _path(self, cid: str) -> Path:
+        return self.root / f"{cid}.json"
 
-@dataclass
-class RagAugmentor(ContextAugmentor):
-    store: VectorStore
-    embedder: Embedder
-    counter: TokenCounter
-    top_k: int = 4
-    max_rag_tokens: int = 250
-    mode: str = "auto" 
-
-    def augment(self, convo: Conversation, base: List[Message]) -> List[Message]:
-        if not base:
-            return base
-
-        last_user: Optional[Message] = next((m for m in reversed(base) if m.role == "user"), None)
-        if last_user is None:
-            return base
-
-        q = last_user.content or ""
-        if self.mode == "auto" and not _looks_doc_query(q):
-            return base
+    def load(self, conversation_id: str) -> Conversation:
+        p = self._path(conversation_id)
+        if not p.exists():
+            return Conversation(conversation_id=conversation_id)
 
         try:
-            if hasattr(self.store, "count") and self.store.count() <= 0: 
-                return base
+            raw = p.read_text(encoding="utf-8")
+            data = json.loads(raw) if raw.strip() else {}
         except Exception:
-            pass
+            # если файл битый — начнём заново
+            return Conversation(conversation_id=conversation_id)
 
-        qv = self.embedder.embed([q])[0]
-        hits: List[DocumentChunk] = self.store.search(qv, top_k=self.top_k)
-        if not hits:
-            return base
-
-        header = (
-            "Релевантные фрагменты из документов (используй их при ответе). "
-            "Если ответа нет в этих фрагментах — так и скажи.\n\n"
-        )
-
-        def make_msg(text: str, chosen_chunks: Sequence[DocumentChunk]) -> Message:
-            return Message(
-                id=_new_id("rag"),
-                role="system",
-                content=text,
-                created_at=last_user.created_at,
-                meta={
-                    "type": "retrieved_context",
-                    "pinned": False,
-                    "chosen": len(chosen_chunks),
-                    "sources": [_loc(c) for c in chosen_chunks],
-                },
+        msgs: list[Message] = []
+        for m in data.get("messages", []) if isinstance(data, dict) else []:
+            if not isinstance(m, dict):
+                continue
+            msgs.append(
+                Message(
+                    id=str(m.get("id", "")),
+                    role=m.get("role", "user"),
+                    content=str(m.get("content", "")),
+                    created_at=_dt_from_iso(str(m.get("created_at", ""))),
+                    meta=m.get("meta", {}) if isinstance(m.get("meta", {}), dict) else {},
+                )
             )
 
-        chosen: List[DocumentChunk] = []
-        parts: List[str] = [header]
+        settings = data.get("settings", {}) if isinstance(data, dict) else {}
+        max_ctx = int(settings.get("max_context_tokens", 800) or 800)
+        reserve = int(settings.get("reserved_for_reply_tokens", 200) or 200)
 
-        for ch in hits:
-            piece = f"[{_loc(ch)}]\n{(ch.text or '').strip()}\n\n"
-            trial = "".join(parts) + piece
-            trial_msg = make_msg(trial, chosen + [ch])
-            tok = self.counter.count_messages([trial_msg])
-            if tok <= self.max_rag_tokens:
-                parts.append(piece)
-                chosen.append(ch)
-            else:
-                break
+        return Conversation(
+            conversation_id=str(data.get("conversation_id", conversation_id)) if isinstance(data, dict) else conversation_id,
+            messages=msgs,
+            max_context_tokens=max_ctx,
+            reserved_for_reply_tokens=reserve,
+            summary=(data.get("summary") if isinstance(data, dict) else None),
+            memory=(data.get("memory", {}) if isinstance(data, dict) and isinstance(data.get("memory", {}), dict) else {}),
+        )
 
-        if not chosen:
-            ch0 = hits[0]
-            text = (ch0.text or "").strip()
-            if not text:
-                return base
+    def save(self, convo: Conversation) -> None:
+        p = self._path(convo.conversation_id)
 
-            lo, hi = 0, len(text)
-            best = ""
-            while lo <= hi:
-                mid = (lo + hi) // 2
-                trial = header + f"[{_loc(ch0)}]\n{text[:mid]}\n"
-                trial_msg = make_msg(trial, [ch0])
-                tok = self.counter.count_messages([trial_msg])
-                if tok <= self.max_rag_tokens:
-                    best = trial
-                    lo = mid + 1
-                else:
-                    hi = mid - 1
+        data: dict[str, Any] = {
+            "conversation_id": convo.conversation_id,
+            "settings": {
+                "max_context_tokens": int(convo.max_context_tokens),
+                "reserved_for_reply_tokens": int(convo.reserved_for_reply_tokens),
+            },
+            "messages": [
+                {
+                    "id": m.id,
+                    "role": m.role,
+                    "content": m.content,
+                    "created_at": _dt_to_iso(m.created_at),
+                    "meta": m.meta,
+                }
+                for m in convo.messages
+            ],
+            "summary": convo.summary,
+            "memory": convo.memory,
+        }
 
-            if not best:
-                return base
+        p.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-            rag_msg = make_msg(best, [ch0])
-            rag_msg.meta["tokens"] = self.counter.count_messages([rag_msg])
-        else:
-            final_text = "".join(parts)
-            rag_msg = make_msg(final_text, chosen)
-            rag_msg.meta["tokens"] = self.counter.count_messages([rag_msg])
+    def append_message(self, conversation_id: str, message: Message) -> None:
+        convo = self.load(conversation_id)
+        convo.messages.append(message)
+        self.save(convo)
 
-        insert_at = 0
-        for i, m in enumerate(base):
-            if m.meta.get("pinned") is True:
-                insert_at = i + 1
+    def get_messages(self, conversation_id: str, limit: Optional[int] = None) -> list[Message]:
+        convo = self.load(conversation_id)
+        if limit is None:
+            return list(convo.messages)
+        return list(convo.messages[-int(limit) :])
 
-        return base[:insert_at] + [rag_msg] + base[insert_at:]
+    def delete_messages(self, conversation_id: str, message_ids: list[str]) -> None:
+        convo = self.load(conversation_id)
+        ids = set(message_ids)
+        convo.messages = [m for m in convo.messages if m.id not in ids]
+        self.save(convo)
+
+    def trim_before(self, conversation_id: str, timestamp: datetime) -> None:
+        ts = timestamp if timestamp.tzinfo else timestamp.replace(tzinfo=timezone.utc)
+        convo = self.load(conversation_id)
+        convo.messages = [m for m in convo.messages if (m.created_at if m.created_at.tzinfo else m.created_at.replace(tzinfo=timezone.utc)) >= ts]
+        self.save(convo)

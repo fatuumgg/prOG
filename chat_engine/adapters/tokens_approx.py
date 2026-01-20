@@ -1,39 +1,32 @@
 from __future__ import annotations
 
-from typing import Sequence
+import math
+from collections.abc import Sequence
 
 from chat_engine.domain.models import Message
-from chat_engine.ports.summarizer import Summarizer
+from chat_engine.ports.tokens import TokenCounter
 
 
-class MockSummarizer(Summarizer):
+class ApproxTokenCounter(TokenCounter):
     """
-    Детерминированная "суммаризация" без сети:
-    - превращает сообщения в пункты
-    - грубо режет по длине, чтобы уложиться в max_tokens (1 токен ~ 4 символа)
+    MVP-оценка:
+      - 1 токен ~ 4 символа
+      - + небольшой overhead на сообщение
+    Конвенция: meta["tokens"] хранит "стоимость сообщения" (content + overhead),
+    чтобы count_messages мог суммировать без пересчёта.
     """
 
-    def summarize(self, messages: Sequence[Message], *, max_tokens: int) -> str:
-        def norm(s: str) -> str:
-            return " ".join((s or "").split())
+    overhead_per_message: int = 4
 
-        lines = []
+    def count_text(self, text: str) -> int:
+        return max(1, int(math.ceil(len(text or "") / 4)))
+
+    def count_messages(self, messages: Sequence[Message]) -> int:
+        total = 0
         for m in messages:
-            role = "U" if m.role == "user" else ("A" if m.role == "assistant" else m.role.upper())
-            snippet = norm(m.content or "")
-            if len(snippet) > 160:
-                snippet = snippet[:157] + "..."
-            lines.append(f"- {role}: {snippet}")
-
-        lines = lines[:15]
-        text = "Сводка (авто):\n" + "\n".join(lines) if lines else "Сводка (авто): (пусто)"
-
-        while (len(text) // 4) > max_tokens and len(lines) > 1:
-            lines = lines[:-1]
-            text = "Сводка (авто):\n" + "\n".join(lines)
-
-        hard_max_chars = max(20, max_tokens * 4)
-        if len(text) > hard_max_chars:
-            text = text[: hard_max_chars - 3] + "..."
-
-        return text
+            cached = m.meta.get("tokens")
+            if isinstance(cached, int) and cached >= 0:
+                total += cached
+            else:
+                total += self.count_text(m.content or "") + int(self.overhead_per_message)
+        return total
