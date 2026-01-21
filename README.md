@@ -1,15 +1,3 @@
-# Chat Engine — управление контекстом диалога (truncation + summary + RAG + user memory)
-
-Проект реализует систему управления контекстом диалога с LLM:
-- хранит историю сообщений (user/assistant/system) на диске,
-- считает токены и **обрезает контекст** при превышении лимита,
-- умеет **суммаризировать** “старую” историю (summary buffer),
-- умеет **RAG**: индексировать документы (TXT/PDF) и добавлять релевантные фрагменты в контекст,
-- умеет **персистентную память о пользователе** (извлечение фактов → хранение → подмешивание в новые диалоги),
-- поддерживает **mock-режим** без реальной LLM.
-
----
-
 ## 1) Требования
 
 - Python **3.10+**
@@ -31,7 +19,7 @@ source .venv/bin/activate
 python -m pip install -U pip
 ```
 
-Установи зависимости:
+Установка зависимости:
 
 Минимум (API + mock):
 ```bash
@@ -74,14 +62,14 @@ python -m pip install sentence-transformers
 
 ### 4.1. Быстрый запуск в mock-режиме (без Ollama)
 
-Открой терминал:
+Подготовка:
 
 ```bash
 cd /Users/.../projjjj
 source .venv/bin/activate
 ```
 
-Запусти сервер:
+Запуск сервера:
 
 ```bash
 uvicorn chat_engine.app.api:app --reload --port 8000 --log-level info
@@ -97,20 +85,20 @@ curl -sS http://127.0.0.1:8000/docs >/dev/null && echo "API OK"
 
 ### 4.2. Запуск с Ollama (реальная LLM)
 
-#### Шаг 1: запусти Ollama в отдельном терминале
+#### Шаг 1: запуск Ollama в отдельном терминале
 (терминал №1)
 
 ```bash
 ollama serve
 ```
 
-Проверь что Ollama отвечает:
+Провека:
 
 ```bash
 curl -sS http://127.0.0.1:11434/api/tags | python -m json.tool
 ```
 
-#### Шаг 2: запусти API (терминал №2)
+#### Шаг 2: запуск API (терминал №2)
 
 ```bash
 cd /Users/.../projjjj
@@ -167,59 +155,7 @@ uvicorn chat_engine.app.api:app --reload --port 8000 --log-level debug
 
 ---
 
-## 6) Как это работает (принцип работы)
-
-### 6.1. История диалога
-Каждый запрос:
-1) Загружает диалог из JSON (`JsonFileConversationRepo`)
-2) Убеждается, что есть system-сообщение (system prompt)
-3) Добавляет новое сообщение пользователя
-4) Сохраняет новые сообщения (после ответа)
-
-### 6.2. Token counting
-`TokenCounter` считает токены:
-- `ApproxTokenCounter` — грубо (≈ 1 токен на 4 символа)
-- `TiktokenTokenCounter` — точнее
-
-Токены кэшируются в `message.meta["tokens"]`.
-
-### 6.3. Обрезание (Truncation)
-`RecencyTruncation`:
-- **всегда сохраняет pinned-сообщения** (`meta.pinned=True`) — например system prompt, summary, память пользователя.
-- остальные сообщения добавляет **с конца (самые свежие)**, пока не превысим бюджет.
-
-### 6.4. Summary buffer (суммаризация)
-Если включено summary:
-- когда truncation “выкидывает” слишком много сообщений,
-- система создаёт **одно system summary-сообщение**, которое заменяет старую часть истории
-- summary кладётся в начало (после system prompt), pinned=True
-- при следующих суммаризациях summary “роллится” (обновляется)
-
-### 6.5. RAG (документы)
-RAG состоит из:
-- загрузчика (TXT/PDF),
-- чанкер (нарезка на куски),
-- эмбеддер (hash или sbert),
-- vector store (JSON).
-
-Индексация:
-1) `RagIndexer` → loader → chunker → embedder → store.upsert()
-
-При чате:
-- `RagAugmentor` может вставить system-блок retrieved_context
-- режим:
-  - `auto`: вставляет только если запрос выглядит как “в документе/по документу/pdf…”
-  - `always`: всегда пытается вставить retrieved_context
-
-### 6.6. Память пользователя (как ChatGPT Memory)
-Пайплайн:
-1) `RuleBasedMemoryExtractor` вынимает факты из user-сообщения (имя, нравится/не нравится, цель, проект…)
-2) `MemoryManager` делает upsert в `JsonUserMemoryStore` (стабильный fact_id по user_id+key)
-3) `MemoryAugmentor` добавляет system-блок “Профиль пользователя” в контекст
-
----
-
-## 7) API эндпоинты
+## 6) API эндпоинты
 
 ### `POST /chat`
 Отправить сообщение в диалог.
@@ -265,7 +201,7 @@ curl -sS -X POST "http://127.0.0.1:8000/documents/upload?user_id=u_test&replace=
 
 ---
 
-## 8) CLI режим
+## 7) CLI режим
 
 Можно общаться без FastAPI:
 
@@ -292,7 +228,7 @@ python -m chat_engine.app.cli --cid demo_cli --uid u_test --ingest ./docs/book.p
 
 ---
 
-## 9) Как запускать тесты
+## 8) Как запускать тесты
 
 ### Вариант 1: просто pytest (из корня проекта)
 
@@ -314,7 +250,7 @@ pytest -vv
 
 ---
 
-## 10) Пример полного запуска 
+## 9) Пример полного запуска 
 
 Терминал 1 (Ollama):
 ```bash
