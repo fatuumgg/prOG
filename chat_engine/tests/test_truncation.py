@@ -15,14 +15,14 @@ def test_recency_truncation_keeps_system():
             role="system",
             content="sys",
             created_at=datetime.now(timezone.utc),
-            meta={"pinned": True},  # важно для новой логики
+            meta={"pinned": True},  
         ),
         Message(id="u1", role="user", content="x" * 200, created_at=datetime.now(timezone.utc), meta={}),
         Message(id="a1", role="assistant", content="y" * 200, created_at=datetime.now(timezone.utc), meta={}),
         Message(id="u2", role="user", content="z" * 200, created_at=datetime.now(timezone.utc), meta={}),
     ]
 
-    fitted = trunc.fit(msgs, counter=counter, max_input_tokens=30)  # очень мало
+    fitted = trunc.fit(msgs, counter=counter, max_input_tokens=30)  
 
     assert len(fitted) >= 1
     assert fitted[0].role == "system"

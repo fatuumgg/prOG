@@ -44,7 +44,6 @@ class JsonFileConversationRepo(ConversationRepo):
             raw = p.read_text(encoding="utf-8")
             data = json.loads(raw) if raw.strip() else {}
         except Exception:
-            # если файл битый — начнём заново
             return Conversation(conversation_id=conversation_id)
 
         msgs: list[Message] = []

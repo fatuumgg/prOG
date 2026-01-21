@@ -62,7 +62,6 @@ class JsonVectorStore(VectorStore):
         return removed
 
     def upsert(self, chunks: Sequence[DocumentChunk], vectors: Sequence[List[float]]) -> None:
-        # индекс по id
         idx: Dict[str, int] = {}
         for i, it in enumerate(self._items):
             ch = it.get("chunk", {})

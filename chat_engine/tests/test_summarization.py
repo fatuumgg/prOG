@@ -27,28 +27,23 @@ def test_summary_reduces_tokens_and_context_fits():
             summary_policy=SummaryPolicy(min_dropped_messages=1, max_summary_tokens=80),
         )
 
-        # нагоним историю так, чтобы резка точно случилась
         for i in range(12):
             engine.handle_user_message("c1", "hello " + ("x" * 80) + f" #{i}")
 
         convo = repo.load("c1")
 
-        # 1) summary реально появился
         summaries = [m for m in convo.messages if m.role == "system" and m.meta.get("type") == "summary"]
         assert len(summaries) >= 1
         sm = summaries[0]
 
-        # 2) summary меньше того, что он заменил (по токенам)
         replaced = sm.meta.get("replaced", {})
         assert isinstance(replaced.get("tokens"), int)
         assert isinstance(sm.meta.get("tokens"), int)
         assert sm.meta["tokens"] < replaced["tokens"]
 
-        # 3) контекст после summary укладывается в бюджет (после fit)
         context = list(convo.messages)
         fitted = trunc.fit(context, counter=counter, max_input_tokens=engine.budget.max_input_tokens)
         assert counter.count_messages(fitted) <= engine.budget.max_input_tokens
 
-        # 4) новые сообщения не теряются
         assert convo.messages[-2].role == "user"
         assert convo.messages[-1].role == "assistant"

@@ -27,7 +27,6 @@ def _loc(ch: DocumentChunk) -> str:
 
 
 def _new_id(prefix: str) -> str:
-    # чтобы не было коллизий с постоянным "rag_block"
     from uuid import uuid4
     return f"{prefix}_{uuid4().hex}"
 
@@ -39,7 +38,7 @@ class RagAugmentor(ContextAugmentor):
     counter: TokenCounter
     top_k: int = 4
     max_rag_tokens: int = 250
-    mode: str = "auto"  # auto | always
+    mode: str = "auto"  
 
     def augment(self, convo: Conversation, draft_context: Sequence[Message]) -> list[Message]:
         base = list(draft_context)
@@ -54,7 +53,6 @@ class RagAugmentor(ContextAugmentor):
         if self.mode == "auto" and not _looks_doc_query(q):
             return base
 
-        # если стора нет/пустой — смысла продолжать нет
         try:
             if hasattr(self.store, "count") and int(self.store.count()) <= 0:
                 return base
@@ -101,7 +99,6 @@ class RagAugmentor(ContextAugmentor):
                 break
 
         if not chosen:
-            # попробуем хотя бы первый чанк ужать бинарным поиском
             ch0 = hits[0]
             text = (ch0.text or "").strip()
             if not text:
@@ -130,7 +127,6 @@ class RagAugmentor(ContextAugmentor):
             rag_msg = make_msg(final_text, chosen)
             rag_msg.meta["tokens"] = self.counter.count_messages([rag_msg])
 
-        # вставляем после pinned=True системных сообщений (system prompt / summary / memory)
         insert_at = 0
         for i, m in enumerate(base):
             if m.meta.get("pinned") is True:

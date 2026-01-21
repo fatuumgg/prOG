@@ -28,7 +28,6 @@ class MockSummarizer(Summarizer):
         lines = lines[:15]
         text = "Сводка (авто):\n" + "\n".join(lines) if lines else "Сводка (авто): (пусто)"
 
-        # укладываемся в max_tokens (грубо: 1 токен ~ 4 символа)
         while (len(text) // 4) > int(max_tokens) and len(lines) > 1:
             lines = lines[:-1]
             text = "Сводка (авто):\n" + "\n".join(lines)

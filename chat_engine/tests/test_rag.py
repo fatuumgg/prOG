@@ -50,9 +50,7 @@ def test_rag_index_and_retrieve_topk_and_budget():
         ctx = list(convo.messages)
         out = aug.augment(convo, ctx)
 
-        # появился retrieved_context
         rc = [m for m in out if m.role == "system" and m.meta.get("type") == "retrieved_context"]
         assert len(rc) == 1
 
-        # он не переполняет свой лимит
         assert counter.count_messages([rc[0]]) <= aug.max_rag_tokens

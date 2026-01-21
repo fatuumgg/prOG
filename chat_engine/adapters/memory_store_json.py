@@ -63,7 +63,6 @@ class JsonUserMemoryStore(UserMemoryStore):
             else:
                 self._data = data
         except Exception:
-            # если JSON битый — сохраним бэкап и начнём заново
             try:
                 backup = self.path.with_suffix(self.path.suffix + ".bad")
                 self.path.replace(backup)

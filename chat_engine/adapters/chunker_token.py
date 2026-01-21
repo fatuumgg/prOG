@@ -34,7 +34,6 @@ class TokenChunker(Chunker):
             while pos < n:
                 end = min(n, pos + max_chars)
 
-                # не рубим слово посередине
                 if end < n:
                     cut = text.rfind(" ", pos, end)
                     if cut != -1 and cut > pos + 50:
